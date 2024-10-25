@@ -28,6 +28,9 @@ typedef enum {
     OP_NOT,
     OP_NEGATE,
     OP_PRINT,
+    OP_JUMP,
+    OP_JUMP_IF_FALSE,
+    OP_LOOP,
     OP_RETURN,
 } OpCode;
 
@@ -44,4 +47,4 @@ void writeChunk(Chunk* chunk, uint8_t byte, int line);
 int addConstant(Chunk* chunk, Value value);
 void freeChunk(Chunk* chunk);
 
-#endif //CLOX_CHUNK_H
+#endif  // CLOX_CHUNK_H
