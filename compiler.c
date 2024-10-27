@@ -555,6 +555,8 @@ static void statement() {
         beginScope();
         block();
         endScope();
+    } else {
+        expressionStatement();
     }
 }
 
