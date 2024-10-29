@@ -87,7 +87,7 @@ static InterpretResult run() {
         double a = AS_NUMBER(pop());                      \
         push(valueType(a op b));                          \
     } while (false);
-
+    int dups = 0;  // hack to get allow locals to work inside switch statements
     for (;;) {
 #ifdef DEBUG_TRACE_EXECUTION
         printf("        ");
@@ -120,7 +120,7 @@ static InterpretResult run() {
                 break;
             case OP_GET_LOCAL: {
                 uint8_t slot = READ_BYTE();
-                push(vm.stack[slot]);
+                push(vm.stack[slot + dups]);
                 break;
             }
             case OP_SET_LOCAL: {
@@ -216,6 +216,11 @@ static InterpretResult run() {
             case OP_LOOP: {
                 uint16_t offset = READ_SHORT();
                 vm.ip -= offset;
+                break;
+            }
+            case OP_DUP: {
+                push(peek(0));
+                dups++;
                 break;
             }
             case OP_RETURN: {

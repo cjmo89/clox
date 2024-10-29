@@ -36,6 +36,8 @@ typedef enum {
     PREC_PRIMARY
 } Precedence;
 
+#define MAX_CASES 256
+
 typedef void (*ParseFn)(bool canAssign);
 
 typedef struct {
@@ -156,7 +158,7 @@ static void patchJump(int offset) {
     if (jump > UINT16_MAX) {
         error("Too much code to jump over.");
     }
-    // discard the LSB and zero out the rest
+    // discard the LSB and zero out the two MSBs
     currentChunk()->code[offset] = (jump >> 8) & 0xff;
     // for the lower byte just zero out the 3 MSBs
     currentChunk()->code[offset + 1] = jump & 0xff;
@@ -513,6 +515,37 @@ static void whileStatement() {
     emitByte(OP_POP);
 }
 
+static void switchStatement() {
+    int exitJumps[MAX_CASES];
+    int counter = 0;
+    consume(TOKEN_LEFT_PAREN, "Expect '(' after 'switch'.");
+    expression();
+    consume(TOKEN_RIGHT_PAREN, "Expect ')' after expression");
+    consume(TOKEN_LEFT_BRACE, "Expect '{' after switch condition.");
+    while (match(TOKEN_CASE)) {
+        emitByte(OP_DUP);  // Duplicate case expression so it stays to be
+        //  compared with every case
+        expression();
+        consume(TOKEN_COLON, "Expect ':' after case.");
+        emitByte(OP_EQUAL);
+        int wrongCase = emitJump(OP_JUMP_IF_FALSE);
+        emitByte(OP_POP);
+        statement();
+        exitJumps[counter++] = emitJump(OP_JUMP);
+        patchJump(wrongCase);
+        emitByte(OP_POP);
+    }
+    if (match(TOKEN_DEFAULT)) {
+        consume(TOKEN_COLON, "Expect ':' after default.");
+        statement();
+    }
+    for (int i = 0; i < counter; i++) {
+        patchJump(exitJumps[i]);
+    }
+    emitByte(OP_POP);  // Pop duplicated case expression.
+    consume(TOKEN_RIGHT_BRACE, "Expect '}' at end of switch statement.");
+}
+
 static void synchronize() {
     parser.panicMode = false;
     while (parser.current.type != TOKEN_EOF) {
@@ -551,6 +584,8 @@ static void statement() {
         ifStatement();
     } else if (match(TOKEN_WHILE)) {
         whileStatement();
+    } else if (match(TOKEN_SWITCH)) {
+        switchStatement();
     } else if (match(TOKEN_LEFT_BRACE)) {
         beginScope();
         block();
