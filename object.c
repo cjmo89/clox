@@ -2,24 +2,33 @@
 // Created by snake on 25/07/24.
 //
 
+#include "object.h"
+
 #include <stdio.h>
 #include <string.h>
 
 #include "memory.h"
-#include "object.h"
 #include "table.h"
 #include "value.h"
 #include "vm.h"
 
 #define ALLOCATE_OBJ(type, objectType) \
-(type*)allocateObject(sizeof(type), objectType)
+    (type*)allocateObject(sizeof(type), objectType)
 
 static Obj* allocateObject(size_t size, ObjType type) {
-    Obj* object = (Obj*) reallocate(NULL, 0, size);
+    Obj* object = (Obj*)reallocate(NULL, 0, size);
     object->type = type;
     object->next = vm.objects;
     vm.objects = object;
     return object;
+}
+
+ObjFunction* newFunction() {
+    ObjFunction* function = ALLOCATE_OBJ(ObjFunction, OBJ_FUNCTION);
+    function->arity = 0;
+    function->name = NULL;
+    initChunk(&function->chunk);
+    return function;
 }
 
 static ObjString* allocateString(char* chars, int length, uint32_t hash) {
@@ -44,7 +53,7 @@ ObjString* takeString(char* chars, int length) {
     uint32_t hash = hashString(chars, length);
     ObjString* interned = tableFindString(&vm.strings, chars, length, hash);
     if (interned != NULL) {
-        FREE_ARRAY(char , chars, length + 1);
+        FREE_ARRAY(char, chars, length + 1);
         return interned;
     }
     return allocateString(chars, length, hash);
@@ -60,8 +69,19 @@ ObjString* copyString(const char* chars, int length) {
     return allocateString(heapChars, length, hash);
 }
 
+static void printFunction(ObjFunction* function) {
+    if (function->name == NULL) {
+        printf("<script>");
+        return;
+    }
+    printf("<fn %s>", function->name->chars);
+}
+
 void printObject(Value value) {
     switch (OBJ_TYPE(value)) {
+        case OBJ_FUNCTION:
+            printFunction(AS_FUNCTION(value));
+            break;
         case OBJ_STRING:
             printf("%s", AS_CSTRING(value));
             break;
