@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
 #include "chunk.h"
 #include "debug.h"
 #include "vm.h"
@@ -21,7 +22,7 @@ static void repl() {
 static char* readFile(const char* path) {
     FILE* file = fopen(path, "rb");
     if (file == NULL) {
-        fprintf(stderr, "Could not open file \"5s\".\n", path);
+        fprintf(stderr, "Could not open file \"%s\".\n", path);
         exit(74);
     }
 
@@ -29,7 +30,7 @@ static char* readFile(const char* path) {
     size_t fileSize = ftell(file);
     rewind(file);
 
-    char* buffer = (char*) malloc(fileSize + 1);
+    char* buffer = (char*)malloc(fileSize + 1);
     if (buffer == NULL) {
         fprintf(stderr, "Not enoug memory to read \"%s\".\n", path);
         exit(74);
